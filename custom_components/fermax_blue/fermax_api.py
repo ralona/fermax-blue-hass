@@ -2,11 +2,13 @@
 import asyncio
 import json
 import logging
+import ssl
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import aiohttp
 import async_timeout
+from aiohttp import ClientConnectorError
 
 from .const import (
     OAUTH_URL,
@@ -92,6 +94,9 @@ class FermaxBlueAPI:
         return {
             "Authorization": OAUTH_CLIENT_AUTH,
             "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
         }
 
     def _get_api_headers(self) -> Dict[str, str]:
@@ -114,6 +119,8 @@ class FermaxBlueAPI:
                 }
                 
                 _LOGGER.debug("Sending OAuth authentication request...")
+                _LOGGER.debug(f"Request data: grant_type=password, username={self.username}")
+                
                 async with self.session.post(
                     OAUTH_URL,
                     headers=self._get_auth_headers(),
@@ -139,15 +146,22 @@ class FermaxBlueAPI:
                         raise FermaxBlueAuthError(error_desc)
                     else:
                         error_text = await response.text()
+                        _LOGGER.error(f"Unexpected HTTP status {response.status}: {error_text}")
                         raise FermaxBlueConnectionError(f"HTTP {response.status}: {error_text}")
                         
         except asyncio.TimeoutError:
+            _LOGGER.error(f"Authentication timeout after {DEFAULT_TIMEOUT} seconds")
             raise FermaxBlueConnectionError(ERROR_TIMEOUT)
+        except ClientConnectorError as err:
+            _LOGGER.error(f"Connection error: {err}")
+            raise FermaxBlueConnectionError(f"Connection failed: {err}")
         except aiohttp.ClientError as err:
+            _LOGGER.error(f"HTTP client error: {err}")
             raise FermaxBlueConnectionError(f"{ERROR_CANNOT_CONNECT}: {err}")
         except FermaxBlueAPIError:
             raise
         except Exception as err:
+            _LOGGER.error(f"Unexpected error during authentication: {type(err).__name__}: {err}")
             raise FermaxBlueAPIError(f"{ERROR_UNKNOWN}: {err}")
 
     async def refresh_auth(self) -> bool:
