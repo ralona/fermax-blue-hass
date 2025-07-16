@@ -16,7 +16,7 @@ A custom Home Assistant integration for controlling Fermax Blue intercom doors t
 1. In HACS, go to "Integrations"
 2. Click the three dots in the top right corner
 3. Select "Custom repositories"
-4. Add `https://github.com/yourusername/fermax-blue-hass` as an Integration
+4. Add `https://github.com/ralona/fermax-blue-hass` as an Integration
 5. Click "Install"
 6. Restart Home Assistant
 
@@ -112,7 +112,7 @@ API calls are made over HTTPS and include proper authentication tokens.
 
 ## Support
 
-For issues and feature requests, please visit the [GitHub Issues](https://github.com/yourusername/fermax-blue-hass/issues) page.
+For issues and feature requests, please visit the [GitHub Issues](https://github.com/ralona/fermax-blue-hass/issues) page.
 
 ## License
 

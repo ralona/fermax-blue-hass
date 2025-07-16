@@ -7,11 +7,13 @@ DOMAIN: Final = "fermax_blue"
 CONF_EMAIL: Final = "email"
 CONF_PASSWORD: Final = "password"
 
-# API endpoints
+# API endpoints (based on reverse engineering of Fermax Blue app)
 BASE_URL: Final = "https://api.fermax.com"
-AUTH_URL: Final = f"{BASE_URL}/auth/login"
-DEVICES_URL: Final = f"{BASE_URL}/devices"
-OPEN_DOOR_URL: Final = f"{BASE_URL}/access/open"
+AUTH_URL: Final = f"{BASE_URL}/v2/auth/login"
+USER_INFO_URL: Final = f"{BASE_URL}/v2/user/info"
+DEVICES_URL: Final = f"{BASE_URL}/v2/user/devices"
+PAIRINGS_URL: Final = f"{BASE_URL}/v2/user/pairings"
+OPEN_DOOR_URL: Final = f"{BASE_URL}/v2/access/open"
 
 # Device classes
 DEVICE_CLASS_DOOR: Final = "door"

@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuración Fermax Blue",
+        "description": "Introduce tus credenciales de Fermax Blue",
+        "data": {
+          "email": "Email",
+          "password": "Contraseña"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se puede conectar con la API de Fermax Blue",
+      "invalid_auth": "Email o contraseña inválidos",
+      "unknown": "Error desconocido"
+    },
+    "abort": {
+      "already_configured": "La cuenta ya está configurada"
+    }
+  }
+}
