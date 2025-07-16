@@ -9,7 +9,9 @@ import async_timeout
 
 from .const import (
     AUTH_URL,
+    USER_INFO_URL,
     DEVICES_URL,
+    PAIRINGS_URL,
     OPEN_DOOR_URL,
     DEFAULT_TIMEOUT,
     ERROR_INVALID_AUTH,
@@ -48,19 +50,31 @@ class FermaxBlueAPI:
         """Authenticate with Fermax Blue API."""
         try:
             async with async_timeout.timeout(DEFAULT_TIMEOUT):
+                # Use username/password format as per Fermax Blue API
+                auth_data = {
+                    "username": self.email,
+                    "password": self.password
+                }
+                
                 async with self.session.post(
                     AUTH_URL,
-                    json={"email": self.email, "password": self.password},
+                    json=auth_data,
+                    headers={"Content-Type": "application/json"}
                 ) as response:
                     if response.status == 200:
                         data = await response.json()
-                        self.access_token = data.get("access_token")
-                        _LOGGER.debug("Authentication successful")
-                        return True
+                        # Fermax Blue returns token in different possible formats
+                        self.access_token = data.get("token") or data.get("access_token") or data.get("auth_token")
+                        if self.access_token:
+                            _LOGGER.debug("Authentication successful")
+                            return True
+                        else:
+                            raise FermaxBlueAuthError("No token received from API")
                     elif response.status == 401:
                         raise FermaxBlueAuthError(ERROR_INVALID_AUTH)
                     else:
-                        raise FermaxBlueConnectionError(f"HTTP {response.status}")
+                        error_text = await response.text()
+                        raise FermaxBlueConnectionError(f"HTTP {response.status}: {error_text}")
         except asyncio.TimeoutError:
             raise FermaxBlueConnectionError(ERROR_TIMEOUT)
         except aiohttp.ClientError as err:
@@ -76,24 +90,62 @@ class FermaxBlueAPI:
         try:
             async with async_timeout.timeout(DEFAULT_TIMEOUT):
                 headers = {"Authorization": f"Bearer {self.access_token}"}
-                async with self.session.get(DEVICES_URL, headers=headers) as response:
+                
+                # Try to get pairings first (devices you can control)
+                async with self.session.get(PAIRINGS_URL, headers=headers) as response:
                     if response.status == 200:
-                        data = await response.json()
-                        self.devices = data.get("devices", [])
-                        _LOGGER.debug(f"Found {len(self.devices)} devices")
-                        return self.devices
+                        pairings_data = await response.json()
+                        # Extract pairings which contain door access information
+                        pairings = pairings_data.get("pairings", [])
+                        
+                        # Also get general device info
+                        async with self.session.get(DEVICES_URL, headers=headers) as dev_response:
+                            if dev_response.status == 200:
+                                devices_data = await dev_response.json()
+                                devices = devices_data.get("devices", [])
+                                
+                                # Combine pairings and devices data
+                                self.devices = self._combine_device_data(pairings, devices)
+                                _LOGGER.debug(f"Found {len(self.devices)} devices")
+                                return self.devices
+                            else:
+                                # Fallback to just pairings
+                                self.devices = pairings
+                                _LOGGER.debug(f"Found {len(self.devices)} devices (pairings only)")
+                                return self.devices
                     elif response.status == 401:
                         # Token expired, try to re-authenticate
                         await self.authenticate()
                         return await self.get_devices()
                     else:
-                        raise FermaxBlueConnectionError(f"HTTP {response.status}")
+                        error_text = await response.text()
+                        raise FermaxBlueConnectionError(f"HTTP {response.status}: {error_text}")
         except asyncio.TimeoutError:
             raise FermaxBlueConnectionError(ERROR_TIMEOUT)
         except aiohttp.ClientError as err:
             raise FermaxBlueConnectionError(f"{ERROR_CANNOT_CONNECT}: {err}")
         except Exception as err:
             raise FermaxBlueAPIError(f"{ERROR_UNKNOWN}: {err}")
+
+    def _combine_device_data(self, pairings: List[Dict[str, Any]], devices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Combine pairings and device data."""
+        combined = []
+        
+        for pairing in pairings:
+            # Each pairing represents a door/access point
+            device_info = {
+                "id": pairing.get("id"),
+                "name": pairing.get("name", "Door"),
+                "type": "door",
+                "device_id": pairing.get("deviceId"),
+                "access_id": pairing.get("accessId", {}),
+                "location": pairing.get("location", ""),
+                "home_id": pairing.get("homeId"),
+                "home_name": pairing.get("homeName", "Home"),
+            }
+            combined.append(device_info)
+        
+        return combined
 
     async def open_door(self, device_id: str, access_id: Dict[str, Any]) -> bool:
         """Open a door using device ID and access ID."""
@@ -102,11 +154,19 @@ class FermaxBlueAPI:
 
         try:
             async with async_timeout.timeout(DEFAULT_TIMEOUT):
-                headers = {"Authorization": f"Bearer {self.access_token}"}
-                payload = {
-                    "device_id": device_id,
-                    "access_id": access_id,
+                headers = {
+                    "Authorization": f"Bearer {self.access_token}",
+                    "Content-Type": "application/json"
                 }
+                
+                # Format payload as expected by Fermax Blue API
+                payload = {
+                    "deviceId": device_id,
+                    "accessId": access_id,
+                }
+                
+                _LOGGER.debug(f"Opening door with deviceId: {device_id}, accessId: {access_id}")
+                
                 async with self.session.post(
                     OPEN_DOOR_URL, headers=headers, json=payload
                 ) as response:
@@ -115,10 +175,12 @@ class FermaxBlueAPI:
                         return True
                     elif response.status == 401:
                         # Token expired, try to re-authenticate
+                        _LOGGER.debug("Token expired, re-authenticating")
                         await self.authenticate()
                         return await self.open_door(device_id, access_id)
                     else:
-                        _LOGGER.error(f"Failed to open door: HTTP {response.status}")
+                        error_text = await response.text()
+                        _LOGGER.error(f"Failed to open door: HTTP {response.status}: {error_text}")
                         return False
         except asyncio.TimeoutError:
             raise FermaxBlueConnectionError(ERROR_TIMEOUT)
@@ -140,25 +202,26 @@ class FermaxBlueAPI:
     def get_home_info(self) -> Dict[str, Any]:
         """Get home information from devices."""
         if not self.devices:
-            return {}
+            return {
+                "id": "unknown",
+                "name": "Fermax Blue Home",
+                "address": "",
+            }
 
         # Extract home information from first device
-        # This is a simplified approach - in reality, you might need to
-        # process the device structure differently based on Fermax API response
-        if self.devices:
-            first_device = self.devices[0]
-            return {
-                "id": first_device.get("home_id", "unknown"),
-                "name": first_device.get("home_name", "Fermax Blue Home"),
-                "address": first_device.get("address", ""),
-            }
-        return {}
+        first_device = self.devices[0]
+        return {
+            "id": first_device.get("home_id", "unknown"),
+            "name": first_device.get("home_name", "Fermax Blue Home"),
+            "address": first_device.get("address", ""),
+        }
 
     def get_door_devices(self) -> List[Dict[str, Any]]:
         """Get door devices from the device list."""
         doors = []
         for device in self.devices:
-            if device.get("type") == "door" or "door" in device.get("name", "").lower():
+            # All devices in our list should be doors/access points
+            if device.get("type") == "door":
                 doors.append({
                     "id": device.get("id"),
                     "name": device.get("name", f"Door {device.get('id')}"),
