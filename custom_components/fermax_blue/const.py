@@ -7,13 +7,23 @@ DOMAIN: Final = "fermax_blue"
 CONF_EMAIL: Final = "email"
 CONF_PASSWORD: Final = "password"
 
-# API endpoints (based on reverse engineering of Fermax Blue app)
-BASE_URL: Final = "https://api.fermax.com"
-AUTH_URL: Final = f"{BASE_URL}/v2/auth/login"
-USER_INFO_URL: Final = f"{BASE_URL}/v2/user/info"
-DEVICES_URL: Final = f"{BASE_URL}/v2/user/devices"
-PAIRINGS_URL: Final = f"{BASE_URL}/v2/user/pairings"
-OPEN_DOOR_URL: Final = f"{BASE_URL}/v2/access/open"
+# API endpoints
+OAUTH_URL: Final = "https://oauth.blue.fermax.com/oauth/token"
+BASE_URL: Final = "https://blue.fermax.com"
+USER_INFO_URL: Final = f"{BASE_URL}/user/api/v1/users/me"
+PAIRINGS_URL: Final = f"{BASE_URL}/pairing/api/v3/pairings/me"
+DEVICE_INFO_URL: Final = f"{BASE_URL}/deviceaction/api/v1/device"
+OPEN_DOOR_URL: Final = f"{BASE_URL}/deviceaction/api/v1/device"
+
+# OAuth credentials (from app)
+OAUTH_CLIENT_AUTH: Final = "Basic ZHB2N2lxejZlZTVtYXptMWlxOWR3MWQ0MnNseXV0NDhrajBtcDVmdm81OGo1aWg6Yzd5bGtxcHVqd2FoODV5aG5wcnYwd2R2eXp1dGxjbmt3NHN6OTBidWxkYnVsazE="
+
+# Common headers
+APP_VERSION: Final = "3.2.1"
+APP_BUILD: Final = "3"
+PHONE_OS: Final = "16.4"
+PHONE_MODEL: Final = "iPad14,5"
+USER_AGENT: Final = f"Blue/{APP_VERSION} (com.fermax.bluefermax; build:{APP_BUILD}; iOS {PHONE_OS}) Alamofire/{APP_VERSION}"
 
 # Device classes
 DEVICE_CLASS_DOOR: Final = "door"

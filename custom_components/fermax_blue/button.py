@@ -10,7 +10,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, ENTITY_OPEN_DOOR
-from .fermax_api import FermaxBlueAPI, FermaxBlueAPIError
+from .fermax_api import FermaxBlueAPI, FermaxBlueAPIError, AccessId
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,9 +76,12 @@ class FermaxBlueDoorButton(ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press."""
         try:
+            # Access ID is already an AccessId object in door_data
+            access_id = self._door_data["access_id"]
+            
             success = await self._api.open_door(
                 device_id=self._door_data["device_id"],
-                access_id=self._door_data["access_id"],
+                access_id=access_id,
             )
             
             if success:

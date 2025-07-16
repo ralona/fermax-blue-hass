@@ -71,8 +71,8 @@ class FermaxBlueCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Update data via library."""
         try:
-            await self.api.get_devices()
-            return self.api.devices
+            await self.api.get_pairings()
+            return self.api.pairings
         except FermaxBlueAPIError as err:
             raise UpdateFailed(f"Error communicating with API: {err}")
 

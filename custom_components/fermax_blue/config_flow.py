@@ -43,19 +43,21 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
             raise CannotConnect
         
         # Get home info for the title
-        await api.get_devices()
+        await api.get_pairings()
         home_info = api.get_home_info()
         
         return {
             "title": home_info.get("name", "Fermax Blue Home"),
             "home_id": home_info.get("id", "unknown"),
         }
-    except FermaxBlueAuthError:
+    except FermaxBlueAuthError as err:
+        _LOGGER.error(f"Authentication error: {err}")
         raise InvalidAuth
-    except FermaxBlueConnectionError:
+    except FermaxBlueConnectionError as err:
+        _LOGGER.error(f"Connection error: {err}")
         raise CannotConnect
-    except Exception:
-        _LOGGER.exception("Unexpected exception")
+    except Exception as err:
+        _LOGGER.exception(f"Unexpected exception: {err}")
         raise CannotConnect
     finally:
         await session.close()
