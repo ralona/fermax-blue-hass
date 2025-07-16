@@ -39,19 +39,34 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
     try:
         api = FermaxBlueAPI(data[CONF_EMAIL], data[CONF_PASSWORD], session)
         
-        # Test connection will log detailed errors
-        connection_result = await api.test_connection()
-        if not connection_result:
-            _LOGGER.error("Connection test failed - check logs for details")
+        # First try authentication only
+        _LOGGER.info("Starting authentication test...")
+        try:
+            auth_result = await api.authenticate()
+            if not auth_result:
+                _LOGGER.error("Authentication failed")
+                raise InvalidAuth
+        except FermaxBlueAuthError as auth_err:
+            _LOGGER.error(f"Authentication error: {auth_err}")
+            raise InvalidAuth
+        except Exception as conn_err:
+            _LOGGER.error(f"Connection error during auth: {conn_err}")
             raise CannotConnect
         
-        # Get home info for the title
-        await api.get_pairings()
-        home_info = api.get_home_info()
+        _LOGGER.info("Authentication successful, testing pairings...")
+        
+        # If auth works, try to get pairings
+        try:
+            await api.get_pairings()
+            home_info = api.get_home_info()
+            title = home_info.get("name", "Fermax Blue Home")
+        except Exception as e:
+            _LOGGER.warning(f"Could not get pairings, using default title: {e}")
+            title = "Fermax Blue Home"
         
         return {
-            "title": home_info.get("name", "Fermax Blue Home"),
-            "home_id": home_info.get("id", "unknown"),
+            "title": title,
+            "home_id": "unknown",
         }
     except FermaxBlueAuthError as err:
         _LOGGER.error(f"Authentication error: {err}")
