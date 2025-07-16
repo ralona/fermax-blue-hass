@@ -39,7 +39,10 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
     try:
         api = FermaxBlueAPI(data[CONF_EMAIL], data[CONF_PASSWORD], session)
         
-        if not await api.test_connection():
+        # Test connection will log detailed errors
+        connection_result = await api.test_connection()
+        if not connection_result:
+            _LOGGER.error("Connection test failed - check logs for details")
             raise CannotConnect
         
         # Get home info for the title
