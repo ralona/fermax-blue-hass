@@ -39,6 +39,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic device discovery after authentication
 - No manual configuration required
 
+## [1.1.0] - 2025-01-16
+
+### Changed
+- Complete rewrite of API client with real Fermax Blue endpoints
+- Implemented OAuth2 authentication flow
+- Updated to use actual API structure from reverse-engineered app
+- Improved error handling and logging
+- Fixed authentication issues
+
+### Fixed
+- Authentication now uses correct OAuth flow
+- API endpoints match actual Fermax Blue service
+- Proper handling of access tokens and refresh tokens
+- Device discovery now uses pairings endpoint
+
+### Technical Changes
+- Uses OAuth endpoint: `https://oauth.blue.fermax.com/oauth/token`
+- Implements proper headers mimicking iOS app
+- AccessId structure matches API requirements
+- Token refresh mechanism implemented
+
 ## [Unreleased]
 
 ### Planned
