@@ -8,7 +8,7 @@ import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession, async_create_clientsession
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.entity import DeviceInfo
 
@@ -24,10 +24,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Fermax Blue from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     
-    # Create API instance with custom SSL context
-    ssl_context = ssl.create_default_context()
-    connector = aiohttp.TCPConnector(ssl=ssl_context)
-    session = async_create_clientsession(hass, connector=connector)
+    # Create API instance with default session
+    session = async_get_clientsession(hass)
     
     api = FermaxBlueAPI(
         username=entry.data[CONF_EMAIL],
