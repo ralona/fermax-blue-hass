@@ -32,7 +32,7 @@ DEVICE_CLASS_DOOR: Final = "door"
 ENTITY_OPEN_DOOR: Final = "Open Door"
 
 # Default values
-DEFAULT_TIMEOUT: Final = 10
+DEFAULT_TIMEOUT: Final = 30
 TOKEN_CACHE_FILE: Final = "fermax_blue_token.json"
 
 # Error messages

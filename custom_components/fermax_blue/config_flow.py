@@ -1,5 +1,6 @@
 """Config flow for Fermax Blue integration."""
 import logging
+import ssl
 from typing import Any, Dict, Optional
 
 import voluptuous as vol
@@ -35,23 +36,19 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    session = aiohttp.ClientSession()
+    # Create SSL context that matches what worked in testing
+    ssl_context = ssl.create_default_context()
+    connector = aiohttp.TCPConnector(ssl=ssl_context)
+    session = aiohttp.ClientSession(connector=connector)
     try:
         api = FermaxBlueAPI(data[CONF_EMAIL], data[CONF_PASSWORD], session)
         
         # First try authentication only
         _LOGGER.info("Starting authentication test...")
-        try:
-            auth_result = await api.authenticate()
-            if not auth_result:
-                _LOGGER.error("Authentication failed")
-                raise InvalidAuth
-        except FermaxBlueAuthError as auth_err:
-            _LOGGER.error(f"Authentication error: {auth_err}")
+        auth_result = await api.authenticate()
+        if not auth_result:
+            _LOGGER.error("Authentication failed")
             raise InvalidAuth
-        except Exception as conn_err:
-            _LOGGER.error(f"Connection error during auth: {conn_err}")
-            raise CannotConnect
         
         _LOGGER.info("Authentication successful, testing pairings...")
         
@@ -95,6 +92,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
+                _LOGGER.debug(f"Validation successful, info: {info}")
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
@@ -107,8 +105,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(user_input[CONF_EMAIL])
                 self._abort_if_unique_id_configured()
                 
+                # Ensure we have a title
+                title = info.get("title", "Fermax Blue Home")
+                _LOGGER.debug(f"Creating entry with title: {title}")
+                
                 return self.async_create_entry(
-                    title=info["title"],
+                    title=title,
                     data=user_input,
                 )
 
