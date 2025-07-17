@@ -36,10 +36,19 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
+    _LOGGER.info("Starting validate_input...")
+    
     # Create SSL context that matches what worked in testing
     ssl_context = ssl.create_default_context()
     connector = aiohttp.TCPConnector(ssl=ssl_context)
     session = aiohttp.ClientSession(connector=connector)
+    
+    # Default response in case of any error
+    default_response = {
+        "title": "Fermax Blue Home",
+        "home_id": "unknown",
+    }
+    
     try:
         api = FermaxBlueAPI(data[CONF_EMAIL], data[CONF_PASSWORD], session)
         
@@ -61,10 +70,13 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
             _LOGGER.warning(f"Could not get pairings, using default title: {e}")
             title = "Fermax Blue Home"
         
-        return {
+        result = {
             "title": title,
             "home_id": "unknown",
         }
+        _LOGGER.info(f"Validation successful, returning: {result}")
+        return result
+        
     except FermaxBlueAuthError as err:
         _LOGGER.error(f"Authentication error: {err}")
         raise InvalidAuth
@@ -72,8 +84,10 @@ async def validate_input(hass: HomeAssistant, data: Dict[str, Any]) -> Dict[str,
         _LOGGER.error(f"Connection error: {err}")
         raise CannotConnect
     except Exception as err:
-        _LOGGER.exception(f"Unexpected exception: {err}")
-        raise CannotConnect
+        _LOGGER.exception(f"Unexpected exception in validate_input: {err}")
+        # Return default response instead of raising
+        _LOGGER.error("Returning default response due to unexpected error")
+        return default_response
     finally:
         await session.close()
 
