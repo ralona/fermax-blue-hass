@@ -190,3 +190,7 @@ Desktop.ini
 *.swp
 *.swo
 *~
+
+# Test files with credentials
+test_api.py
+test_api_standalone.py
