@@ -10,6 +10,8 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 import aiohttp
 
+_LOGGER = logging.getLogger(__name__)
+
 from .const import (
     DOMAIN,
     CONF_EMAIL,
@@ -19,9 +21,23 @@ from .const import (
     ERROR_TIMEOUT,
     ERROR_UNKNOWN,
 )
-from .fermax_api import FermaxBlueAPI, FermaxBlueAuthError, FermaxBlueConnectionError
 
-_LOGGER = logging.getLogger(__name__)
+try:
+    from .fermax_api import FermaxBlueAPI, FermaxBlueAuthError, FermaxBlueConnectionError
+except ImportError as e:
+    _LOGGER.error(f"Failed to import fermax_api: {e}")
+    # Create dummy classes to prevent crashes
+    class FermaxBlueAPI:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def authenticate(self):
+            return False
+    
+    class FermaxBlueAuthError(Exception):
+        pass
+    
+    class FermaxBlueConnectionError(Exception):
+        pass
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -107,12 +123,22 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 info = await validate_input(self.hass, user_input)
                 _LOGGER.debug(f"Validation successful, info: {info}")
+                
+                # Ensure info is a dict and has title
+                if not isinstance(info, dict):
+                    _LOGGER.error(f"validate_input returned non-dict: {type(info)}")
+                    info = {"title": "Fermax Blue Home", "home_id": "unknown"}
+                
+                if "title" not in info:
+                    _LOGGER.error("validate_input returned dict without title")
+                    info["title"] = "Fermax Blue Home"
+                    
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except Exception as e:
+                _LOGGER.exception(f"Unexpected exception in config flow: {e}")
                 errors["base"] = "unknown"
             else:
                 # Create a unique ID based on email
