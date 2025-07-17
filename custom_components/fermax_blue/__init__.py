@@ -1,7 +1,6 @@
 """The Fermax Blue integration."""
 import asyncio
 import logging
-import ssl
 from datetime import timedelta
 
 import aiohttp
@@ -13,7 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD
-from .fermax_api import FermaxBlueAPI, FermaxBlueAPIError
+from .fermax_integration import FermaxBlueIntegration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,17 +23,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Fermax Blue from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     
-    # Create API instance with default session
+    # Create integration instance
     session = async_get_clientsession(hass)
     
-    api = FermaxBlueAPI(
+    integration = FermaxBlueIntegration(
         username=entry.data[CONF_EMAIL],
         password=entry.data[CONF_PASSWORD],
         session=session,
     )
     
     # Create coordinator
-    coordinator = FermaxBlueCoordinator(hass, api)
+    coordinator = FermaxBlueCoordinator(hass, integration)
     
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
@@ -59,7 +58,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class FermaxBlueCoordinator(DataUpdateCoordinator):
     """Fermax Blue data coordinator."""
 
-    def __init__(self, hass: HomeAssistant, api: FermaxBlueAPI) -> None:
+    def __init__(self, hass: HomeAssistant, integration: FermaxBlueIntegration) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
@@ -67,22 +66,22 @@ class FermaxBlueCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(minutes=30),
         )
-        self.api = api
+        self.integration = integration
         self._home_device_info: DeviceInfo | None = None
 
     async def _async_update_data(self):
         """Update data via library."""
         try:
-            await self.api.get_pairings()
-            return self.api.pairings
-        except FermaxBlueAPIError as err:
+            await self.integration.update_data()
+            return self.integration.pairings
+        except Exception as err:
             raise UpdateFailed(f"Error communicating with API: {err}")
 
     @property
     def home_device_info(self) -> DeviceInfo:
         """Return home device info."""
         if self._home_device_info is None:
-            home_info = self.api.get_home_info()
+            home_info = self.integration.get_home_info()
             self._home_device_info = DeviceInfo(
                 identifiers={(DOMAIN, home_info.get("id", "unknown"))},
                 name=home_info.get("name", "Fermax Blue Home"),

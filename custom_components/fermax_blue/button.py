@@ -10,7 +10,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, ENTITY_OPEN_DOOR
-from .fermax_api import FermaxBlueAPI, FermaxBlueAPIError, AccessId
+from .fermax_integration import FermaxBlueIntegration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,18 +22,18 @@ async def async_setup_entry(
 ) -> None:
     """Set up Fermax Blue button entities based on a config entry."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
-    api: FermaxBlueAPI = coordinator.api
+    integration: FermaxBlueIntegration = coordinator.integration
     
     entities = []
     
     # Get door devices and create button entities
-    door_devices = api.get_door_devices()
-    home_info = api.get_home_info()
+    door_devices = integration.get_door_devices()
+    home_info = integration.get_home_info()
     
     for door in door_devices:
         entities.append(
             FermaxBlueDoorButton(
-                api=api,
+                integration=integration,
                 door_data=door,
                 home_info=home_info,
                 config_entry=config_entry,
@@ -48,13 +48,13 @@ class FermaxBlueDoorButton(ButtonEntity):
 
     def __init__(
         self,
-        api: FermaxBlueAPI,
+        integration: FermaxBlueIntegration,
         door_data: Dict[str, Any],
         home_info: Dict[str, Any],
         config_entry: ConfigEntry,
     ) -> None:
         """Initialize the button entity."""
-        self._api = api
+        self._integration = integration
         self._door_data = door_data
         self._home_info = home_info
         self._config_entry = config_entry
@@ -79,7 +79,7 @@ class FermaxBlueDoorButton(ButtonEntity):
             # Access ID is already an AccessId object in door_data
             access_id = self._door_data["access_id"]
             
-            success = await self._api.open_door(
+            success = await self._integration.open_door(
                 device_id=self._door_data["device_id"],
                 access_id=access_id,
             )
@@ -90,14 +90,11 @@ class FermaxBlueDoorButton(ButtonEntity):
                 _LOGGER.error(f"Failed to open door {self._door_data['name']}")
                 raise HomeAssistantError(f"Failed to open door {self._door_data['name']}")
                 
-        except FermaxBlueAPIError as err:
-            _LOGGER.error(f"API error opening door {self._door_data['name']}: {err}")
-            raise HomeAssistantError(f"API error: {err}")
         except Exception as err:
-            _LOGGER.error(f"Unexpected error opening door {self._door_data['name']}: {err}")
-            raise HomeAssistantError(f"Unexpected error: {err}")
+            _LOGGER.error(f"Error opening door {self._door_data['name']}: {err}")
+            raise HomeAssistantError(f"Error: {err}")
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self._api.access_token is not None
+        return self._integration.access_token is not None
