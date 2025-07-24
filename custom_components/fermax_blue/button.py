@@ -64,12 +64,12 @@ class FermaxBlueDoorButton(ButtonEntity):
         self._attr_unique_id = f"{config_entry.entry_id}_{door_data['id']}_open"
         self._attr_icon = "mdi:door-open"
         
-        # Device info
+        # Device info - usar el device_name para el dispositivo
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, door_data["id"])},
-            name=door_data["name"],
+            identifiers={(DOMAIN, f"{door_data['device_id']}_{door_data.get('device_name', 'Telefonillo')}")},
+            name=door_data.get("device_name", "Telefonillo"),
             manufacturer="Fermax",
-            model="Blue Intercom Door",
+            model="Blue Intercom",
             via_device=(DOMAIN, home_info.get("id", "unknown")),
         )
 
