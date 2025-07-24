@@ -60,6 +60,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AccessId structure matches API requirements
 - Token refresh mechanism implemented
 
+## [2.0.0] - 2025-07-24
+
+### Added
+- **Enhanced Device Naming**: Devices now display "Device Name Door Name" format
+- **Multi-Intercom Support**: Perfect identification for users with multiple telefonillos
+- **Improved Device Organization**: Each intercom is properly identified by its configured name
+
+### Changed
+- Device names now combine intercom name with door name (e.g., "Telefonillo Casa 1 Portal")
+- Removed hyphen from device names for cleaner appearance
+- Updated device hierarchy to better reflect multiple building/property setups
+
+### Technical Changes
+- Modified `fermax_integration.py` to include device name in door naming
+- Updated `button.py` to use device-specific identification
+- Enhanced device info structure for better Home Assistant integration
+
 ## [Unreleased]
 
 ### Planned

@@ -69,17 +69,24 @@ automation:
 
 ## Device Structure
 
-The integration creates the following device hierarchy:
+The integration creates the following device hierarchy with enhanced naming (v2.0.0+):
 
 ```
 Fermax Blue Home
-├── Main Door
-│   └── Open Door (Button)
-├── Garage Door
-│   └── Open Door (Button)
-└── Back Door
-    └── Open Door (Button)
+├── Telefonillo Casa 1 (Device)
+│   ├── Telefonillo Casa 1 Portal Open Door (Button)
+│   └── Telefonillo Casa 1 Garaje Open Door (Button)
+└── Telefonillo Casa 2 (Device)
+    ├── Telefonillo Casa 2 Exterior Open Door (Button)
+    └── Telefonillo Casa 2 Portero Open Door (Button)
 ```
+
+### Enhanced Device Naming (v2.0.0)
+
+- **Device Names**: Each intercom/telefonillo is identified by its configured name
+- **Button Names**: Format is "Device Name Door Name Open Door" 
+- **Multi-Building Support**: Perfect for users with multiple properties or intercoms
+- **Clear Identification**: Easy to distinguish between different locations
 
 ## Troubleshooting
 
