@@ -188,6 +188,7 @@ class FermaxBlueIntegration:
         for pairing in self.pairings:
             device_id = pairing.get("deviceId")
             access_door_map = pairing.get("accessDoorMap", {})
+            device_name = pairing.get("tag", "Telefonillo")  # Nombre del dispositivo/telefonillo
             
             for door_key, door_data in access_door_map.items():
                 if door_data.get("visible", True):
@@ -198,13 +199,19 @@ class FermaxBlueIntegration:
                         number=access_id_data.get("number", 0)
                     )
                     
+                    door_name = door_data.get("title", f"Door {door_key}")
+                    # Combinar nombre del dispositivo + nombre de la puerta
+                    full_name = f"{device_name} {door_name}"
+                    
                     doors.append({
                         "id": f"{device_id}_{door_key}",
-                        "name": door_data.get("title", f"Door {door_key}"),
+                        "name": full_name,
                         "device_id": device_id,
                         "access_id": access_id,
                         "pairing_tag": pairing.get("tag", ""),
                         "home": pairing.get("home", ""),
+                        "device_name": device_name,
+                        "door_name": door_name,
                     })
         
         return doors
