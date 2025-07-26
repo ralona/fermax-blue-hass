@@ -121,6 +121,12 @@ API calls are made over HTTPS and include proper authentication tokens.
 
 For issues and feature requests, please visit the [GitHub Issues](https://github.com/ralona/fermax-blue-hass/issues) page.
 
+## Buy Me a Coffee
+
+If you find this integration useful and want to support its development, you can buy me a coffee!
+
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/ralona)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
