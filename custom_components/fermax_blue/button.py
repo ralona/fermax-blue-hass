@@ -79,6 +79,8 @@ class FermaxBlueDoorButton(ButtonEntity):
             # Access ID is already an AccessId object in door_data
             access_id = self._door_data["access_id"]
             
+            _LOGGER.debug(f"Attempting to open door {self._door_data['name']}")
+            
             success = await self._integration.open_door(
                 device_id=self._door_data["device_id"],
                 access_id=access_id,
@@ -87,12 +89,35 @@ class FermaxBlueDoorButton(ButtonEntity):
             if success:
                 _LOGGER.info(f"Door {self._door_data['name']} opened successfully")
             else:
-                _LOGGER.error(f"Failed to open door {self._door_data['name']}")
-                raise HomeAssistantError(f"Failed to open door {self._door_data['name']}")
+                _LOGGER.error(f"Failed to open door {self._door_data['name']} - API returned failure")
+                raise HomeAssistantError(
+                    f"No se pudo abrir la puerta {self._door_data['name']}. "
+                    f"Por favor, verifique la conexión con el servidor Fermax."
+                )
                 
+        except HomeAssistantError:
+            raise
         except Exception as err:
-            _LOGGER.error(f"Error opening door {self._door_data['name']}: {err}")
-            raise HomeAssistantError(f"Error: {err}")
+            _LOGGER.error(f"Error opening door {self._door_data['name']}: {type(err).__name__}: {err}")
+            
+            # Provide user-friendly error messages
+            if "auth" in str(err).lower():
+                raise HomeAssistantError(
+                    f"Error de autenticación al abrir la puerta. "
+                    f"Por favor, reconfigure la integración con sus credenciales."
+                )
+            elif "timeout" in str(err).lower():
+                raise HomeAssistantError(
+                    f"Tiempo de espera agotado al intentar abrir la puerta. "
+                    f"Verifique su conexión a internet."
+                )
+            elif "connect" in str(err).lower():
+                raise HomeAssistantError(
+                    f"No se pudo conectar con el servidor Fermax. "
+                    f"Verifique su conexión a internet o intente más tarde."
+                )
+            else:
+                raise HomeAssistantError(f"Error al abrir la puerta: {err}")
 
     @property
     def available(self) -> bool:
