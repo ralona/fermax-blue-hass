@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-01-14
+
+### Fixed
+- **Spanish API Responses**: Enhanced response validation to properly recognize Spanish success messages like "la puerta abierta"
+- **Response Logging**: Changed unclear responses from ERROR to WARNING level since they still succeed
+
+### Technical Improvements
+- Added Spanish success indicators: "abierta", "abierto", "puerta abierta"
+- Added Spanish error indicators: "cerrada", "bloqueada"
+
+## [2.1.0] - 2025-01-14
+
+### Fixed
+- **Token Expiration**: Fixed issue where integration would fail after ~1 week due to expired tokens
+- **Token Refresh**: Implemented proactive token refresh 5 minutes before expiration
+- **API Response Validation**: Improved door open response validation to detect "KO" errors correctly
+- **Error Messages**: Added user-friendly error messages in Spanish for common failures
+
+### Added
+- **Token Persistence**: Tokens are now stored persistently and survive Home Assistant restarts
+- **Enhanced Logging**: Added detailed debug logging for troubleshooting authentication issues
+- **Automatic Token Renewal**: Coordinator now automatically renews tokens during updates
+- **Better Error Handling**: Improved error handling throughout the integration
+
+### Changed
+- **Update Interval**: Reduced from 30 to 15 minutes for faster detection of issues
+- **Authentication Flow**: Enhanced with retry logic and better error recovery
+- **Door Open Logic**: Now properly validates API responses instead of assuming success
+
+### Technical Improvements
+- Added `_needs_refresh()` method with 5-minute buffer before token expiration
+- Implemented token storage using Home Assistant's Store helper
+- Enhanced error propagation from API to UI with specific error types
+- Improved logging throughout authentication and API call flow
+
+## [2.0.0] - 2025-01-13
+
+### Added
+- Enhanced device naming with telefonillo identification
+- Improved door device detection and naming
+
 ## [1.0.0] - 2025-01-16
 
 ### Added

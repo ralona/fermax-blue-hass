@@ -63,6 +63,14 @@ class FermaxBlueIntegration:
             "phone-model": PHONE_MODEL,
             "app-build": APP_BUILD,
         }
+    
+    def _needs_refresh(self) -> bool:
+        """Check if token needs refresh."""
+        if not self.access_token or not self.token_expires_at:
+            return True
+        # Refresh 5 minutes before expiration
+        buffer_time = timedelta(minutes=5)
+        return datetime.now(tz=timezone.utc) >= (self.token_expires_at - buffer_time)
 
     def _get_auth_headers(self) -> Dict[str, str]:
         """Get headers for OAuth requests."""
@@ -106,9 +114,11 @@ class FermaxBlueIntegration:
                     self.refresh_token = oauth_data.get("refresh_token")
                     expires_in = oauth_data.get("expires_in", 3600)
                     self.token_expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=expires_in)
+                    _LOGGER.info(f"Authentication successful, token expires in {expires_in} seconds")
                     return True
                 else:
-                    _LOGGER.error(f"Authentication failed: {response.status}")
+                    error_text = await response.text()
+                    _LOGGER.error(f"Authentication failed: {response.status} - {error_text}")
                     return False
                     
         except Exception as err:
@@ -117,8 +127,10 @@ class FermaxBlueIntegration:
 
     async def get_pairings(self) -> List[Dict[str, Any]]:
         """Get list of paired devices."""
-        if not self.access_token:
-            await self.authenticate()
+        if not self.access_token or self._needs_refresh():
+            if not await self.authenticate():
+                _LOGGER.error("Failed to authenticate for getting pairings")
+                return []
             
         try:
             timeout = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT)
@@ -129,9 +141,18 @@ class FermaxBlueIntegration:
             ) as response:
                 if response.status == 200:
                     self.pairings = await response.json()
+                    _LOGGER.debug(f"Found {len(self.pairings)} pairings")
                     return self.pairings
+                elif response.status == 401:
+                    _LOGGER.warning("Token expired, re-authenticating...")
+                    if await self.authenticate():
+                        return await self.get_pairings()
+                    else:
+                        _LOGGER.error("Re-authentication failed")
+                        return []
                 else:
-                    _LOGGER.error(f"Failed to get pairings: {response.status}")
+                    error_text = await response.text()
+                    _LOGGER.error(f"Failed to get pairings: {response.status} - {error_text}")
                     return []
                     
         except Exception as err:
@@ -140,8 +161,10 @@ class FermaxBlueIntegration:
 
     async def open_door(self, device_id: str, access_id: AccessId) -> bool:
         """Open a door."""
-        if not self.access_token:
-            await self.authenticate()
+        if not self.access_token or self._needs_refresh():
+            if not await self.authenticate():
+                _LOGGER.error("Failed to authenticate for door open")
+                return False
             
         try:
             url = f"{OPEN_DOOR_URL}/{device_id}/directed-opendoor"
@@ -154,11 +177,33 @@ class FermaxBlueIntegration:
                 data=data,
                 timeout=timeout
             ) as response:
+                result_text = await response.text()
+                _LOGGER.debug(f"Door open response: status={response.status}, body={result_text}")
+                
                 if response.status == 200:
-                    _LOGGER.info(f"Door opened successfully")
-                    return True
+                    # Check if response contains success indicator
+                    result_lower = result_text.lower()
+                    success_indicators = ["ok", "success", "open", "abierta", "abierto", "puerta abierta"]
+                    error_indicators = ["ko", "error", "fail", "cerrada", "bloqueada"]
+                    
+                    if any(indicator in result_lower for indicator in success_indicators):
+                        _LOGGER.info(f"Door opened successfully: {result_text}")
+                        return True
+                    elif any(indicator in result_lower for indicator in error_indicators):
+                        _LOGGER.error(f"Door open failed per response: {result_text}")
+                        return False
+                    else:
+                        _LOGGER.warning(f"Unclear door response, assuming success: {result_text}")
+                        return True
+                elif response.status == 401:
+                    _LOGGER.warning("Token expired during door open, re-authenticating...")
+                    if await self.authenticate():
+                        return await self.open_door(device_id, access_id)
+                    else:
+                        _LOGGER.error("Re-authentication failed for door open")
+                        return False
                 else:
-                    _LOGGER.error(f"Failed to open door: {response.status}")
+                    _LOGGER.error(f"Failed to open door: {response.status} - {result_text}")
                     return False
                     
         except Exception as err:
