@@ -9,9 +9,9 @@ import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
-# API endpoints
-OAUTH_URL = "https://oauth.blue.fermax.com/oauth/token"
-BASE_URL = "https://blue.fermax.com"
+# API endpoints - Updated to new Fermax DuoxMe infrastructure (2025)
+OAUTH_URL = "https://oauth-pro-duoxme.fermax.io/oauth/token"
+BASE_URL = "https://pro-duoxme.fermax.io"
 PAIRINGS_URL = f"{BASE_URL}/pairing/api/v3/pairings/me"
 OPEN_DOOR_URL = f"{BASE_URL}/deviceaction/api/v1/device"
 OAUTH_CLIENT_AUTH = "Basic ZHB2N2lxejZlZTVtYXptMWlxOWR3MWQ0MnNseXV0NDhrajBtcDVmdm81OGo1aWg6Yzd5bGtxcHVqd2FoODV5aG5wcnYwd2R2eXp1dGxjbmt3NHN6OTBidWxkYnVsazE="

@@ -7,9 +7,9 @@ DOMAIN: Final = "fermax_blue"
 CONF_EMAIL: Final = "email"
 CONF_PASSWORD: Final = "password"
 
-# API endpoints
-OAUTH_URL: Final = "https://oauth.blue.fermax.com/oauth/token"
-BASE_URL: Final = "https://blue.fermax.com"
+# API endpoints - Updated to new Fermax DuoxMe infrastructure (2025)
+OAUTH_URL: Final = "https://oauth-pro-duoxme.fermax.io/oauth/token"
+BASE_URL: Final = "https://pro-duoxme.fermax.io"
 USER_INFO_URL: Final = f"{BASE_URL}/user/api/v1/users/me"
 PAIRINGS_URL: Final = f"{BASE_URL}/pairing/api/v3/pairings/me"
 DEVICE_INFO_URL: Final = f"{BASE_URL}/deviceaction/api/v1/device"
